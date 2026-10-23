@@ -1,0 +1,279 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>РОП — центр управления продажами</title>
+<meta name="description" content="Планер и операционная панель руководителя отдела продаж">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{--bg:#f4f6fa;--panel:#fff;--text:#172033;--muted:#69758b;--line:#e4e8f0;--blue:#315fce;--blue2:#eaf0ff;--green:#16805d;--amber:#a96508;--red:#bd3d4a;--shadow:0 8px 26px rgba(30,45,80,.06);--radius:16px}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:14px/1.45 Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif}
+button,input,select,textarea{font:inherit}button{cursor:pointer;border:0;border-radius:10px;padding:10px 13px;background:var(--blue);color:#fff;font-weight:650}button.secondary{background:#eef1f7;color:#27334a}button.ghost{background:transparent;color:var(--muted);border:1px solid var(--line)}button.danger{background:#fff0f1;color:var(--red)}button:disabled{opacity:.5;cursor:not-allowed}
+.app{min-height:100vh;display:grid;grid-template-columns:245px minmax(0,1fr)}aside{background:#17233b;color:#fff;padding:22px 14px;display:flex;flex-direction:column;gap:20px}.brand{display:flex;align-items:center;gap:10px;padding:0 8px}.brand-mark{width:38px;height:38px;border-radius:12px;background:#5379e8;display:grid;place-items:center;font-weight:900}.brand strong{font-size:15px}.brand small{display:block;color:#aeb9d0;font-size:11px;margin-top:2px}.nav{display:grid;gap:6px}.nav button{display:flex;align-items:center;gap:11px;text-align:left;background:transparent;color:#c5cee0;font-weight:550;padding:12px;border-radius:10px}.nav button.active,.nav button:hover{background:#2a3a5b;color:#fff}.nav .ico{width:20px;text-align:center;font-size:16px}.side-note{margin-top:auto;padding:12px;border:1px solid #3b4965;border-radius:12px;color:#c0c9d9;font-size:11px}
+main{min-width:0;padding:26px clamp(16px,3vw,38px) 40px}.topbar{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:24px}.eyebrow{font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);font-weight:800}.topbar h1{margin:3px 0 0;font-size:clamp(23px,3vw,31px);letter-spacing:-.03em}.top-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.status{display:flex;align-items:center;gap:7px;color:var(--muted);font-size:12px}.dot{width:8px;height:8px;border-radius:50%;background:#c18a25}.dot.ok{background:#20a476}.dot.err{background:#c53d4d}
+.notice{border:1px solid #f0d59b;background:#fff8e8;color:#775116;padding:12px 14px;border-radius:12px;margin-bottom:18px;font-size:12px}.notice strong{display:block;margin-bottom:3px}.grid{display:grid;gap:14px}.stats{grid-template-columns:repeat(4,minmax(0,1fr));margin-bottom:18px}.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:18px;min-width:0}.stat-label{color:var(--muted);font-size:12px}.stat-value{font-size:27px;font-weight:800;letter-spacing:-.04em;margin:8px 0 3px}.stat-foot{font-size:11px;color:var(--muted)}.section-grid{grid-template-columns:minmax(0,1.25fr) minmax(290px,.75fr)}.card-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}.card-head h2{font-size:16px;margin:0}.card-head p{margin:3px 0 0;color:var(--muted);font-size:12px}.table-wrap{overflow:auto}table{width:100%;border-collapse:collapse;min-width:620px}th{text-align:left;color:var(--muted);font-size:11px;font-weight:750;text-transform:uppercase;letter-spacing:.04em;padding:10px;border-bottom:1px solid var(--line)}td{padding:12px 10px;border-bottom:1px solid #edf0f5;vertical-align:top}tr:last-child td{border-bottom:0}.empty{text-align:center;padding:30px 10px;color:var(--muted)}.pill{display:inline-flex;align-items:center;padding:4px 8px;border-radius:999px;font-size:11px;font-weight:750;white-space:nowrap}.p1{background:#ffebed;color:#a72c3a}.p2{background:#fff2dc;color:#8a5708}.p3{background:#edf1f7;color:#596579}.green{background:#e2f6ed;color:#16724f}.blue{background:#e8efff;color:#3157b4}.muted{color:var(--muted)}.task-title{font-weight:700}.subtext{font-size:12px;color:var(--muted);margin-top:3px}.row-actions{display:flex;gap:6px}.row-actions button{padding:6px 8px;font-size:11px}.progress{height:7px;background:#edf0f5;border-radius:99px;overflow:hidden}.progress span{display:block;height:100%;background:var(--blue);border-radius:99px}.quick-list{display:grid;gap:10px}.quick-item{display:flex;gap:10px;align-items:flex-start;padding:10px 0;border-bottom:1px solid var(--line)}.quick-item:last-child{border:0}.bullet{width:9px;height:9px;border-radius:50%;background:#d69b37;margin-top:5px;flex:none}.quick-item strong{display:block;font-size:13px}.quick-item small{color:var(--muted)}
+.toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:15px;flex-wrap:wrap}.toolbar-left,.toolbar-right{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.search{min-width:220px}.field, input,select,textarea{border:1px solid #dce2ec;border-radius:10px;padding:10px 11px;background:#fff;color:var(--text);width:100%;outline:none}.field:focus,input:focus,select:focus,textarea:focus{border-color:#7796ef;box-shadow:0 0 0 3px #315fce16}label{display:grid;gap:6px;color:#4d5a70;font-size:12px;font-weight:700}.form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:13px}.form-grid .wide{grid-column:1/-1}.modal-backdrop{position:fixed;inset:0;background:#10192b88;display:none;align-items:center;justify-content:center;padding:18px;z-index:20}.modal-backdrop.open{display:flex}.modal{width:min(650px,100%);max-height:90vh;overflow:auto;background:#fff;border-radius:18px;padding:22px;box-shadow:0 24px 70px #10192b44}.modal h2{margin:0 0 18px}.modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:18px}.hidden{display:none!important}.view{display:none}.view.active{display:block}.metric-list{display:grid;gap:14px}.metric-row{display:grid;grid-template-columns:minmax(150px,1fr) 2fr 55px;gap:12px;align-items:center}.metric-row .progress span{background:#4b8b67}.week-days{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px}.daybox{border:1px solid var(--line);border-radius:12px;padding:12px;background:#fff;min-height:120px}.daybox strong{display:block;font-size:12px;margin-bottom:10px}.daybox span{display:block;color:var(--muted);font-size:11px;margin-top:7px}.toast{position:fixed;right:18px;bottom:18px;background:#17233b;color:#fff;padding:12px 16px;border-radius:12px;box-shadow:var(--shadow);z-index:40;max-width:360px}.footnote{font-size:11px;color:var(--muted);margin-top:15px}.mobile-menu{display:none}
+@media(max-width:1050px){.stats{grid-template-columns:repeat(2,minmax(0,1fr))}.section-grid{grid-template-columns:1fr}.app{grid-template-columns:205px minmax(0,1fr)}}
+@media(max-width:720px){.app{display:block}aside{position:sticky;top:0;z-index:10;padding:10px 12px;gap:10px}.brand{padding:0}.brand-mark{width:32px;height:32px}.nav{display:flex;overflow:auto;gap:4px}.nav button{white-space:nowrap;padding:9px 10px;font-size:12px}.nav .ico{display:none}.side-note{display:none}main{padding:18px 12px 30px}.topbar{align-items:flex-start;flex-direction:column}.stats{gap:9px}.card{padding:14px}.stat-value{font-size:23px}.form-grid{grid-template-columns:1fr}.form-grid .wide{grid-column:auto}.week-days{grid-template-columns:repeat(2,minmax(0,1fr))}.metric-row{grid-template-columns:1fr 50px}.metric-row .progress{grid-column:1/-1;grid-row:2}.search{min-width:0}.top-actions{width:100%}}
+</style>
+</head>
+<body>
+<div class="app">
+<aside>
+  <div class="brand"><div class="brand-mark">Р</div><div><strong>РОП · Управление</strong><small>Центр продаж</small></div></div>
+  <nav class="nav" aria-label="Основное меню">
+    <button class="active" data-view="dashboard"><span class="ico">▦</span>Обзор</button>
+    <button data-view="planner"><span class="ico">◷</span>Планер</button>
+    <button data-view="deals"><span class="ico">◇</span>Контроль сделок</button>
+    <button data-view="team"><span class="ico">♙</span>Команда</button>
+    <button data-view="reports"><span class="ico">▥</span>Аналитика и отчёт</button>
+    <button data-view="settings"><span class="ico">⚙</span>Подключение</button>
+  </nav>
+  <div class="side-note">Общая рабочая панель. Не вносите сюда ФИО клиентов, телефоны, адреса, документы или другие персональные данные при публичном доступе.</div>
+</aside>
+<main>
+  <header class="topbar">
+    <div><div class="eyebrow" id="todayLabel">ЦЕНТР УПРАВЛЕНИЯ</div><h1 id="pageTitle">Обзор отдела</h1></div>
+    <div class="top-actions"><span class="status"><span id="statusDot" class="dot"></span><span id="connectionStatus">Демо-режим</span></span><button id="quickAdd">＋ Новая задача</button></div>
+  </header>
+  <div class="notice"><strong>Важно: режим без входа в систему</strong>Любой человек, у которого есть ссылка, потенциально может просматривать и менять общие данные. Используйте только обезличенные сведения и внутренние коды. Для реальных данных клиентов включите авторизацию и ограничения доступа.</div>
+
+  <section id="view-dashboard" class="view active">
+    <div class="grid stats">
+      <div class="card"><div class="stat-label">Продажи за период, ₽</div><div class="stat-value" id="statSales">0</div><div class="stat-foot">Сумма выигранных сделок</div></div>
+      <div class="card"><div class="stat-label">Активные сделки</div><div class="stat-value" id="statDeals">0</div><div class="stat-foot">Не закрыты как выигранные или потерянные</div></div>
+      <div class="card"><div class="stat-label">Задачи на сегодня</div><div class="stat-value" id="statTasks">0</div><div class="stat-foot">Не завершены и запланированы на сегодня</div></div>
+      <div class="card"><div class="stat-label">Сделки в риске</div><div class="stat-value" id="statRisks">0</div><div class="stat-foot">Отмечены как требующие вмешательства</div></div>
+    </div>
+    <div class="grid section-grid">
+      <div class="card"><div class="card-head"><div><h2>Приоритетные задачи</h2><p>Что требует внимания в первую очередь</p></div><button class="secondary" data-go="planner">Все задачи</button></div><div id="dashboardTasks" class="table-wrap"></div></div>
+      <div class="card"><div class="card-head"><div><h2>Контрольные сигналы</h2><p>Точки внимания для РОПа</p></div></div><div id="signals" class="quick-list"></div></div>
+    </div>
+    <div class="card" style="margin-top:14px"><div class="card-head"><div><h2>Ритм недели</h2><p>Рекомендуемая структура управленческой работы</p></div></div><div class="week-days">
+      <div class="daybox"><strong>ПОНЕДЕЛЬНИК</strong>Планирование<span>План/факт, приоритеты, прогноз</span></div>
+      <div class="daybox"><strong>ВТОРНИК</strong>Качество продаж<span>Звонки, КП, встречи</span></div>
+      <div class="daybox"><strong>СРЕДА</strong>Воронка и CRM<span>Зависшие сделки и следующие шаги</span></div>
+      <div class="daybox"><strong>ЧЕТВЕРГ</strong>Команда<span>Обучение и индивидуальные разборы</span></div>
+      <div class="daybox"><strong>ПЯТНИЦА</strong>Итоги<span>Аналитика и отчёт собственнику</span></div>
+    </div></div>
+  </section>
+
+  <section id="view-planner" class="view">
+    <div class="toolbar"><div><div class="eyebrow">ОПЕРАЦИОННАЯ РАБОТА</div><h2>Планер РОПа</h2></div><div class="toolbar-right"><input id="taskSearch" class="search" placeholder="Поиск задач…"><button id="addTask">＋ Добавить задачу</button></div></div>
+    <div class="card"><div class="card-head"><div><h2>Задачи и результаты</h2><p>Фиксируйте приоритет, плановое время и причину переноса</p></div><select id="taskFilter" style="width:auto"><option value="all">Все задачи</option><option value="open">Незавершённые</option><option value="today">На сегодня</option><option value="done">Выполненные</option></select></div><div id="tasksTable" class="table-wrap"></div></div>
+  </section>
+
+  <section id="view-deals" class="view">
+    <div class="toolbar"><div><div class="eyebrow">ВОРОНКА ПРОДАЖ</div><h2>Контроль сделок</h2></div><div class="toolbar-right"><input id="dealSearch" class="search" placeholder="Поиск по коду или продавцу…"><button id="addDeal">＋ Добавить сделку</button></div></div>
+    <div class="card"><div class="card-head"><div><h2>Реестр сделок</h2><p>Используйте внутренний код вместо имени клиента</p></div><select id="dealFilter" style="width:auto"><option value="all">Все сделки</option><option value="risk">Только в риске</option><option value="active">Активные</option><option value="won">Выигранные</option><option value="lost">Потерянные</option></select></div><div id="dealsTable" class="table-wrap"></div></div>
+  </section>
+
+  <section id="view-team" class="view">
+    <div class="toolbar"><div><div class="eyebrow">РАЗВИТИЕ СОТРУДНИКОВ</div><h2>Команда</h2></div><div class="toolbar-right"><input id="teamSearch" class="search" placeholder="Поиск по коду сотрудника…"><button id="addPerson">＋ Добавить сотрудника</button></div></div>
+    <div class="card"><div class="card-head"><div><h2>Показатели и развитие</h2><p>Для публичной версии используйте коды сотрудников, а не ФИО</p></div></div><div id="teamTable" class="table-wrap"></div></div>
+  </section>
+
+  <section id="view-reports" class="view">
+    <div class="toolbar"><div><div class="eyebrow">ПЛАН / ФАКТ</div><h2>Аналитика и отчёт собственнику</h2></div><div class="toolbar-right"><button class="secondary" id="exportJson">Экспорт данных JSON</button><button class="secondary" id="exportCsv">Экспорт сделок CSV</button></div></div>
+    <div class="grid stats">
+      <div class="card"><div class="stat-label">План продаж, ₽</div><div class="stat-value" id="reportPlan">0</div><div class="stat-foot">Укажите план в настройках</div></div>
+      <div class="card"><div class="stat-label">Факт выигранных, ₽</div><div class="stat-value" id="reportFact">0</div><div class="stat-foot">По внесённым сделкам</div></div>
+      <div class="card"><div class="stat-label">Выполнение плана</div><div class="stat-value" id="reportPct">0%</div><div class="progress"><span id="reportProgress" style="width:0%"></span></div></div>
+      <div class="card"><div class="stat-label">Открытые задачи</div><div class="stat-value" id="reportOpenTasks">0</div><div class="stat-foot">В том числе перенесённые</div></div>
+    </div>
+    <div class="grid section-grid">
+      <div class="card"><div class="card-head"><div><h2>Показатели управления</h2><p>Метрики рассчитываются из внесённых данных</p></div></div><div id="metricList" class="metric-list"></div></div>
+      <div class="card"><div class="card-head"><div><h2>Недельный отчёт</h2><p>Черновик для встречи с собственником</p></div></div><label>Главные результаты<textarea id="reportResults" rows="3" placeholder="Что достигнуто за неделю…"></textarea></label><label style="margin-top:12px">Риски и причины отклонений<textarea id="reportRisks" rows="3" placeholder="Что не выполнено и почему…"></textarea></label><label style="margin-top:12px">Решения, необходимые от собственника<textarea id="reportDecisions" rows="3" placeholder="Какое решение или ресурс требуется…"></textarea></label><button id="saveReport" style="margin-top:12px">Сохранить черновик</button></div>
+    </div>
+  </section>
+
+  <section id="view-settings" class="view">
+    <div class="toolbar"><div><div class="eyebrow">НАСТРОЙКА СВЯЗИ</div><h2>Подключение к Supabase</h2></div></div>
+    <div class="grid section-grid">
+      <div class="card"><div class="card-head"><div><h2>Параметры проекта</h2><p>Настройки сохраняются только в этом браузере</p></div></div>
+        <div class="notice"><strong>Не вставляйте service_role key</strong>В браузере разрешён только публичный anon/publishable key. Он не является паролем; безопасность определяется политиками RLS в базе.</div>
+        <form id="configForm" class="form-grid">
+          <label class="wide">Supabase Project URL<input id="supabaseUrl" type="url" placeholder="https://xxxxxxxx.supabase.co"></label>
+          <label class="wide">Publishable / anon key<textarea id="supabaseKey" rows="3" placeholder="sb_publishable_… или legacy anon key"></textarea></label>
+          <label>План продаж на месяц, ₽<input id="monthlyPlan" type="number" min="0" step="1000" placeholder="Например, 12000000"></label>
+          <div style="display:flex;align-items:end"><button type="submit">Подключить и загрузить</button></div>
+        </form>
+        <p class="footnote">Для общедоступного приложения без входа в систему база будет доступна по публичным правилам. Это допустимо только для обезличенных рабочих данных, которые можно показывать и менять всем по ссылке.</p>
+      </div>
+      <div class="card"><div class="card-head"><div><h2>Состояние системы</h2><p>Проверка соединения</p></div></div><div id="connectionDetails" class="quick-list"><div class="quick-item"><span class="bullet"></span><div><strong>Демо-режим</strong><small>Данные пока хранятся в этом браузере</small></div></div></div><button class="secondary" id="testConnection" style="margin-top:12px">Проверить подключение</button><button class="danger" id="disconnect" style="margin:12px 0 0 8px">Отключить Supabase</button></div>
+    </div>
+  </section>
+  <p class="footnote">РОП · Центр управления продажами. Начальные данные — демонстрационные. Перед рабочим запуском проверьте RLS, права доступа и правила обработки персональных данных.</p>
+</main>
+</div>
+
+<div id="modalBackdrop" class="modal-backdrop"><div class="modal"><h2 id="modalTitle">Новая запись</h2><form id="modalForm"><div id="modalFields" class="form-grid"></div><div class="modal-actions"><button type="button" class="secondary" id="modalCancel">Отмена</button><button type="submit">Сохранить</button></div></form></div></div>
+<div id="toast" class="toast hidden" role="status"></div>
+
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const today = () => new Date().toISOString().slice(0,10);
+  const fmt = n => new Intl.NumberFormat('ru-RU',{maximumFractionDigits:0}).format(Number(n)||0);
+  const safe = v => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const local = {
+    tasks: [
+      {id:'demo-t1',title:'Проверить сделки без следующего шага',area:'CRM',priority:'P1',due:today(),minutes:30,status:'open',owner:'РОП',result:'По каждой сделке назначен следующий шаг',reason:''},
+      {id:'demo-t2',title:'Разобрать звонки двух продавцов',area:'Команда',priority:'P2',due:today(),minutes:40,status:'open',owner:'РОП',result:'Зафиксированы 2 рекомендации',reason:''},
+      {id:'demo-t3',title:'Подготовить прогноз продаж',area:'Аналитика',priority:'P2',due:today(),minutes:30,status:'open',owner:'РОП',result:'Обновлён прогноз до конца месяца',reason:''}
+    ],
+    deals: [
+      {id:'demo-d1',code:'СД-001',seller:'ПР-01',stage:'КП отправлено',amount:420000,status:'active',risk:true,last_contact:today(),next_step:'Уточнить решение по КП',next_date:today(),notes:'Демонстрационная запись — заменить обезличенными данными.'},
+      {id:'demo-d2',code:'СД-002',seller:'ПР-03',stage:'Проектирование',amount:680000,status:'active',risk:false,last_contact:today(),next_step:'Согласовать проект',next_date:today(),notes:'Демонстрационная запись.'},
+      {id:'demo-d3',code:'СД-003',seller:'ПР-02',stage:'Договор',amount:510000,status:'won',risk:false,last_contact:today(),next_step:'',next_date:'',notes:'Демонстрационная выигранная сделка.'}
+    ],
+    team: [
+      {id:'demo-p1',code:'ПР-01',plan:1200000,fact:780000,conversion:24,focus:'Качество презентации КП',action:'Разобрать 2 звонка',status:'В работе'},
+      {id:'demo-p2',code:'ПР-02',plan:1200000,fact:1050000,conversion:31,focus:'Работа с возражениями',action:'Отработать возражение по срокам',status:'В работе'},
+      {id:'demo-p3',code:'ПР-03',plan:1200000,fact:640000,conversion:19,focus:'Следующий шаг в CRM',action:'Проверять следующий шаг после контакта',status:'Нужно внимание'}
+    ],
+    config:{url:'',key:'',plan:0,reportResults:'',reportRisks:'',reportDecisions:''}
+  };
+  let db = null, mode = 'demo', data = structuredClone(local), editing = null, modalType = null, toastTimer;
+  const views = {dashboard:'Обзор отдела',planner:'Планер РОПа',deals:'Контроль сделок',team:'Команда',reports:'Аналитика и отчёт собственнику',settings:'Подключение'};
+  function toast(message){$('toast').textContent=message;$('toast').classList.remove('hidden');clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('toast').classList.add('hidden'),3500)}
+  function setStatus(text,type=''){ $('connectionStatus').textContent=text; $('statusDot').className='dot '+(type==='ok'?'ok':type==='err'?'err':''); }
+  function switchView(name){document.querySelectorAll('.view').forEach(v=>v.classList.toggle('active',v.id==='view-'+name));document.querySelectorAll('.nav button').forEach(b=>b.classList.toggle('active',b.dataset.view===name));$('pageTitle').textContent=views[name]||name;window.scrollTo({top:0,behavior:'smooth'});}
+  document.querySelectorAll('.nav button').forEach(b=>b.addEventListener('click',()=>switchView(b.dataset.view)));
+  document.querySelectorAll('[data-go]').forEach(b=>b.addEventListener('click',()=>switchView(b.dataset.go)));
+  $('todayLabel').textContent=new Intl.DateTimeFormat('ru-RU',{weekday:'long',day:'numeric',month:'long',year:'numeric'}).format(new Date()).toUpperCase();
+
+  function isToday(v){return v===today()}
+  function activeDeals(){return data.deals.filter(d=>d.status==='active')}
+  function wonDeals(){return data.deals.filter(d=>d.status==='won')}
+  function openTasks(){return data.tasks.filter(t=>t.status!=='done')}
+  function priorityPill(p){return `<span class="pill ${p==='P1'?'p1':p==='P2'?'p2':'p3'}">${safe(p)}</span>`}
+  function statusPill(s){const map={open:['В работе','blue'],done:['Выполнена','green'],active:['Активна','blue'],won:['Выиграна','green'],lost:['Потеряна','p1'],'Нужно внимание':['Нужно внимание','p2'],'В работе':['В работе','blue']};let a=map[s]||[s,'p3'];return `<span class="pill ${a[1]}">${safe(a[0])}</span>`}
+  function renderDashboard(){
+    $('statSales').textContent=fmt(wonDeals().reduce((a,d)=>a+Number(d.amount||0),0));
+    $('statDeals').textContent=activeDeals().length;
+    $('statTasks').textContent=data.tasks.filter(t=>t.status!=='done'&&isToday(t.due)).length;
+    $('statRisks').textContent=activeDeals().filter(d=>d.risk).length;
+    const tasks=data.tasks.filter(t=>t.status!=='done').sort((a,b)=>({P1:0,P2:1,P3:2}[a.priority]-({P1:0,P2:1,P3:2}[b.priority]))).slice(0,6);
+    $('dashboardTasks').innerHTML=tasks.length?`<table><thead><tr><th>Задача</th><th>Приоритет</th><th>Срок</th><th>Статус</th></tr></thead><tbody>${tasks.map(t=>`<tr><td><div class="task-title">${safe(t.title)}</div><div class="subtext">${safe(t.area)} · ${Number(t.minutes)||0} мин</div></td><td>${priorityPill(t.priority)}</td><td>${safe(t.due||'—')}</td><td>${statusPill(t.status)}</td></tr>`).join('')}</tbody></table>`:'<div class="empty">Нет открытых задач. Добавьте первую задачу.</div>';
+    const overdue=data.tasks.filter(t=>t.status!=='done'&&t.due&&t.due<today()).length;
+    const risk=activeDeals().filter(d=>d.risk).length;
+    const missing=activeDeals().filter(d=>!d.next_step||!d.next_date).length;
+    const signals=[
+      [risk?'Сделки в риске':'Риски по сделкам',risk?`${risk} сделок требуют внимания`:'Не отмечено сделок в риске',risk],
+      [overdue?'Просроченные задачи':'Сроки задач',overdue?`${overdue} задач просрочено`:'Просроченных задач нет',overdue],
+      [missing?'Нет следующего шага':'Следующие шаги',missing?`${missing} активных сделок без следующего шага`:'У активных сделок заполнен следующий шаг',missing]
+    ];
+    $('signals').innerHTML=signals.map(s=>`<div class="quick-item"><span class="bullet" style="background:${s[2]?'#c44752':'#20a476'}"></span><div><strong>${safe(s[0])}</strong><small>${safe(s[1])}</small></div></div>`).join('');
+  }
+  function renderTasks(){
+    const q=($('taskSearch')?.value||'').toLowerCase(), filter=$('taskFilter')?.value||'all';
+    let rows=data.tasks.filter(t=>(`${t.title} ${t.area} ${t.owner}`.toLowerCase().includes(q)));
+    if(filter==='open')rows=rows.filter(t=>t.status!=='done');if(filter==='today')rows=rows.filter(t=>isToday(t.due));if(filter==='done')rows=rows.filter(t=>t.status==='done');
+    rows.sort((a,b)=>({P1:0,P2:1,P3:2}[a.priority]-({P1:0,P2:1,P3:2}[b.priority])));
+    $('tasksTable').innerHTML=rows.length?`<table><thead><tr><th>Задача / результат</th><th>Направление</th><th>Приоритет</th><th>Срок</th><th>Время</th><th>Статус</th><th>Действия</th></tr></thead><tbody>${rows.map(t=>`<tr><td><div class="task-title">${safe(t.title)}</div><div class="subtext">Результат: ${safe(t.result||'—')}${t.reason?'<br>Перенос: '+safe(t.reason):''}</div></td><td>${safe(t.area)}</td><td>${priorityPill(t.priority)}</td><td>${safe(t.due||'—')}</td><td>${Number(t.minutes)||0} мин</td><td>${statusPill(t.status)}</td><td><div class="row-actions"><button class="secondary" data-edit-task="${safe(t.id)}">Изменить</button><button class="${t.status==='done'?'ghost':'secondary'}" data-toggle-task="${safe(t.id)}">${t.status==='done'?'Вернуть':'Готово'}</button><button class="danger" data-delete-task="${safe(t.id)}">×</button></div></td></tr>`).join('')}</tbody></table>`:'<div class="empty">Задач не найдено.</div>';
+    $('tasksTable').querySelectorAll('[data-edit-task]').forEach(b=>b.onclick=()=>openModal('task',b.dataset.editTask));
+    $('tasksTable').querySelectorAll('[data-toggle-task]').forEach(b=>b.onclick=()=>mutate('tasks',b.dataset.toggleTask,t=>({...t,status:t.status==='done'?'open':'done'})));
+    $('tasksTable').querySelectorAll('[data-delete-task]').forEach(b=>b.onclick=()=>removeRecord('tasks',b.dataset.deleteTask));
+  }
+  function renderDeals(){
+    const q=($('dealSearch')?.value||'').toLowerCase(), f=$('dealFilter')?.value||'all';
+    let rows=data.deals.filter(d=>(`${d.code} ${d.seller} ${d.stage} ${d.next_step}`.toLowerCase().includes(q)));
+    if(f==='risk')rows=rows.filter(d=>d.risk&&d.status==='active');if(f==='active')rows=rows.filter(d=>d.status==='active');if(f==='won')rows=rows.filter(d=>d.status==='won');if(f==='lost')rows=rows.filter(d=>d.status==='lost');
+    $('dealsTable').innerHTML=rows.length?`<table><thead><tr><th>Код сделки</th><th>Продавец</th><th>Этап</th><th>Сумма</th><th>Следующий шаг</th><th>Риск / статус</th><th>Действия</th></tr></thead><tbody>${rows.map(d=>`<tr><td><div class="task-title">${safe(d.code)}</div><div class="subtext">Контакт: ${safe(d.last_contact||'—')}</div></td><td>${safe(d.seller)}</td><td>${safe(d.stage)}</td><td>${fmt(d.amount)} ₽</td><td>${safe(d.next_step||'Не указан')}<div class="subtext">${safe(d.next_date||'')}</div></td><td>${d.risk?'<span class="pill p1">Риск</span> ':''}${statusPill(d.status)}</td><td><div class="row-actions"><button class="secondary" data-edit-deal="${safe(d.id)}">Изменить</button><button class="danger" data-delete-deal="${safe(d.id)}">×</button></div></td></tr>`).join('')}</tbody></table>`:'<div class="empty">Сделок не найдено.</div>';
+    $('dealsTable').querySelectorAll('[data-edit-deal]').forEach(b=>b.onclick=()=>openModal('deal',b.dataset.editDeal));
+    $('dealsTable').querySelectorAll('[data-delete-deal]').forEach(b=>b.onclick=()=>removeRecord('deals',b.dataset.deleteDeal));
+  }
+  function renderTeam(){
+    const q=($('teamSearch')?.value||'').toLowerCase();let rows=data.team.filter(p=>p.code.toLowerCase().includes(q));
+    $('teamTable').innerHTML=rows.length?`<table><thead><tr><th>Код</th><th>План</th><th>Факт</th><th>Выполнение</th><th>Конверсия, %</th><th>Фокус развития</th><th>Статус</th><th>Действия</th></tr></thead><tbody>${rows.map(p=>{let pct=p.plan?Math.round(p.fact/p.plan*100):0;return `<tr><td><strong>${safe(p.code)}</strong></td><td>${fmt(p.plan)} ₽</td><td>${fmt(p.fact)} ₽</td><td><div>${pct}%</div><div class="progress" style="margin-top:5px"><span style="width:${Math.min(100,pct)}%"></span></div></td><td>${Number(p.conversion)||0}%</td><td>${safe(p.focus)}<div class="subtext">${safe(p.action)}</div></td><td>${statusPill(p.status)}</td><td><div class="row-actions"><button class="secondary" data-edit-person="${safe(p.id)}">Изменить</button><button class="danger" data-delete-person="${safe(p.id)}">×</button></div></td></tr>`}).join('')}</tbody></table>`:'<div class="empty">Сотрудников не найдено.</div>';
+    $('teamTable').querySelectorAll('[data-edit-person]').forEach(b=>b.onclick=()=>openModal('person',b.dataset.editPerson));
+    $('teamTable').querySelectorAll('[data-delete-person]').forEach(b=>b.onclick=()=>removeRecord('team',b.dataset.deletePerson));
+  }
+  function renderReports(){
+    const plan=Number(data.config.plan)||0,fact=wonDeals().reduce((a,d)=>a+Number(d.amount||0),0),pct=plan?Math.round(fact/plan*100):0;
+    $('reportPlan').textContent=fmt(plan);$('reportFact').textContent=fmt(fact);$('reportPct').textContent=pct+'%';$('reportProgress').style.width=Math.min(100,pct)+'%';$('reportOpenTasks').textContent=openTasks().length;
+    const all=data.deals.filter(d=>d.status==='won'||d.status==='lost').length,conv=all?Math.round(wonDeals().length/all*100):0;
+    const active=activeDeals(),risk=active.filter(d=>d.risk).length,missing=active.filter(d=>!d.next_step||!d.next_date).length;
+    const metrics=[['Сделки в риске',risk,active.length?Math.round(risk/active.length*100):0],['Сделки без следующего шага',missing,active.length?Math.round(missing/active.length*100):0],['Конверсия закрытых сделок',conv,conv],['Выполнение плана',pct,pct]];
+    $('metricList').innerHTML=metrics.map(m=>`<div class="metric-row"><div><strong>${safe(m[0])}</strong><div class="subtext">${m[1]}${m[0].includes('Конверсия')||m[0].includes('плана')?'%':' шт.'}</div></div><div class="progress"><span style="width:${Math.max(0,Math.min(100,m[2]))}%"></span></div><strong>${Math.max(0,Math.min(100,m[2]))}%</strong></div>`).join('');
+    $('reportResults').value=data.config.reportResults||'';$('reportRisks').value=data.config.reportRisks||'';$('reportDecisions').value=data.config.reportDecisions||'';
+  }
+  function renderAll(){renderDashboard();renderTasks();renderDeals();renderTeam();renderReports()}
+  function fieldsFor(type,record={}){
+    const inp=(key,label,type='text',extra={})=>({key,label,type,...extra});
+    if(type==='task')return [inp('title','Задача'),inp('area','Направление','select',{options:['Продажи','CRM','Команда','Аналитика','Планёрки','Развитие процессов']}),inp('priority','Приоритет','select',{options:['P1','P2','P3']}),inp('due','Срок','date'),inp('minutes','Плановое время, минут','number'),inp('status','Статус','select',{options:['open','done']}),inp('owner','Ответственный / код'),inp('result','Ожидаемый результат'),inp('reason','Причина переноса / комментарий','textarea',{wide:true})];
+    if(type==='deal')return [inp('code','Код сделки (не имя клиента)'),inp('seller','Код продавца'),inp('stage','Этап','select',{options:['Новый запрос','Выявление потребностей','Замер / проектирование','КП отправлено','Согласование','Договор','Производство','Монтаж','Другое']}),inp('amount','Сумма, ₽','number'),inp('status','Статус','select',{options:['active','won','lost']}),inp('risk','Требует внимания','checkbox'),inp('last_contact','Дата последнего контакта','date'),inp('next_step','Следующий шаг'),inp('next_date','Дата следующего шага','date'),inp('notes','Заметки без персональных данных','textarea',{wide:true})];
+    return [inp('code','Код сотрудника, например ПР-01'),inp('plan','План продаж, ₽','number'),inp('fact','Факт продаж, ₽','number'),inp('conversion','Конверсия, %','number'),inp('focus','Фокус развития'),inp('action','Следующая обучающая задача'),inp('status','Статус','select',{options:['В работе','Нужно внимание','Стабильно']})];
+  }
+  function openModal(type,id=null){
+    modalType=type;editing=id;const arr=type==='task'?data.tasks:type==='deal'?data.deals:data.team;const rec=id?arr.find(x=>x.id===id):{};
+    $('modalTitle').textContent=(id?'Редактировать':'Новая запись')+({task:' · задача',deal:' · сделка',person:' · сотрудник'}[type]);
+    $('modalFields').innerHTML=fieldsFor(type,rec||{}).map(f=>{
+      let val=(rec||{})[f.key];if(val===undefined||val===null)val=f.key==='due'?today():f.key==='status'?(type==='task'?'open':type==='deal'?'active':'В работе'):f.key==='priority'?'P2':f.key==='minutes'?30:f.key==='risk'?false:'';
+      let control='';
+      if(f.type==='select')control=`<select name="${f.key}">${f.options.map(o=>`<option ${String(val)===o?'selected':''} value="${safe(o)}">${safe(o)}</option>`).join('')}</select>`;
+      else if(f.type==='textarea')control=`<textarea name="${f.key}" rows="3">${safe(val)}</textarea>`;
+      else if(f.type==='checkbox')control=`<input name="${f.key}" type="checkbox" ${val?'checked':''} style="width:auto;justify-self:start">`;
+      else control=`<input name="${f.key}" type="${f.type}" value="${safe(val)}" ${f.type==='number'?'min="0"':''}>`;
+      return `<label class="${f.wide?'wide':''}">${safe(f.label)}${control}</label>`;
+    }).join('');
+    $('modalBackdrop').classList.add('open');
+  }
+  function closeModal(){$('modalBackdrop').classList.remove('open');editing=null;modalType=null}
+  $('modalCancel').onclick=closeModal;$('modalBackdrop').addEventListener('click',e=>{if(e.target===$('modalBackdrop'))closeModal()});
+  $('modalForm').onsubmit=async e=>{
+    e.preventDefault();const obj={};fieldsFor(modalType).forEach(f=>{const el=$('modalFields').querySelector(`[name="${f.key}"]`);if(f.type==='checkbox')obj[f.key]=el.checked;else if(f.type==='number')obj[f.key]=Number(el.value)||0;else obj[f.key]=el.value.trim()});
+    if(modalType==='task'&&!obj.title){toast('Введите название задачи');return}
+    if(modalType==='deal'&&!obj.code){toast('Введите код сделки');return}
+    if(modalType==='person'&&!obj.code){toast('Введите код сотрудника');return}
+    const table=modalType==='task'?'tasks':modalType==='deal'?'deals':'team';if(editing){const old=data[table].find(x=>x.id===editing);await saveRecord(table,{...old,...obj})}else await saveRecord(table,{id:crypto.randomUUID(),...obj});
+    closeModal();renderAll();
+  };
+  async function saveRecord(table,record){
+    if(mode==='supabase'){
+      const payload={...record};delete payload.id;if(record.id&&!String(record.id).startsWith('demo-'))payload.id=record.id;
+      const {data:out,error}=await db.from(table).upsert(payload).select().single();if(error){toast('Ошибка сохранения: '+error.message);return} 
+      const i=data[table].findIndex(x=>x.id===record.id);if(i>=0)data[table][i]=out;else data[table].push(out);
+    }else{const i=data[table].findIndex(x=>x.id===record.id);if(i>=0)data[table][i]=record;else data[table].push(record);toast('Сохранено в демо-режиме этого браузера')}
+    renderAll();
+  }
+  async function mutate(table,id,fn){const old=data[table].find(x=>x.id===id);if(!old)return;await saveRecord(table,fn(old))}
+  async function removeRecord(table,id){
+    if(!confirm('Удалить запись? Это действие нельзя отменить.'))return;
+    if(mode==='supabase'){const {error}=await db.from(table).delete().eq('id',id);if(error){toast('Ошибка удаления: '+error.message);return}}
+    data[table]=data[table].filter(x=>x.id!==id);renderAll();toast('Запись удалена');
+  }
+  $('addTask').onclick=$('quickAdd').onclick=()=>openModal('task');$('addDeal').onclick=()=>openModal('deal');$('addPerson').onclick=()=>openModal('person');
+  ['taskSearch','taskFilter'].forEach(id=>$(id).addEventListener('input',renderTasks));['dealSearch','dealFilter'].forEach(id=>$(id).addEventListener('input',renderDeals));$('teamSearch').addEventListener('input',renderTeam);
+
+  function download(name,content,type){const blob=new Blob([content],{type});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;a.click();URL.revokeObjectURL(a.href)}
+  $('exportJson').onclick=()=>download('rop-export-'+today()+'.json',JSON.stringify({tasks:data.tasks,deals:data.deals,team:data.team,config:{plan:data.config.plan}},null,2),'application/json');
+  $('exportCsv').onclick=()=>{const cols=['code','seller','stage','amount','status','risk','last_contact','next_step','next_date'];const esc=v=>'"'+String(v??'').replace(/"/g,'""')+'"';download('deals-'+today()+'.csv',[cols.join(';'),...data.deals.map(d=>cols.map(c=>esc(d[c])).join(';'))].join('\r\n'),'text/csv;charset=utf-8')};
+  $('saveReport').onclick=async()=>{data.config.reportResults=$('reportResults').value;data.config.reportRisks=$('reportRisks').value;data.config.reportDecisions=$('reportDecisions').value;await persistConfig();toast('Черновик отчёта сохранён')};
+
+  async function persistConfig(){localStorage.setItem('ropAppConfig',JSON.stringify(data.config))}
+  async function loadConfig(){
+    try{const c=JSON.parse(localStorage.getItem('ropAppConfig')||'{}');data.config={...data.config,...c};$('supabaseUrl').value=data.config.url||'';$('supabaseKey').value=data.config.key||'';$('monthlyPlan').value=data.config.plan||''}
+    catch(e){}
+  }
+  async function fetchTable(table){const {data:rows,error}=await db.from(table).select('*').order('created_at',{ascending:false});if(error)throw error;return rows||[]}
+  async function connect(url,key){
+    if(!window.supabase){throw new Error('Не загрузилась библиотека Supabase. Проверьте интернет и CDN.')}
+    const client=window.supabase.createClient(url,key);
+    const {error}=await client.from('tasks').select('id').limit(1);if(error)throw error;
+    db=client;const [tasks,deals,team]=await Promise.all([fetchTable('tasks'),fetchTable('deals'),fetchTable('team')]);
+    data.tasks=tasks;data.deals=deals;data.team=team;mode='supabase';data.config.url=url;data.config.key=key;await persistConfig();setStatus('Supabase подключён','ok');renderAll();setConnectionDetails('Подключено к Supabase','Чтение таблиц прошло успешно.','ok');toast('Общие данные загружены');
+  }
+  function setConnectionDetails(title,desc,type=''){ $('connectionDetails').innerHTML=`<div class="quick-item"><span class="bullet" style="background:${type==='ok'?'#20a476':type==='err'?'#c44752':'#d69b37'}"></span><div><strong>${safe(title)}</strong><small>${safe(desc)}</small></div></div>`}
+  $('configForm').onsubmit=async e=>{e.preventDefault();const url=$('supabaseUrl').value.trim().replace(/\/$/,'');const key=$('supabaseKey').value.trim();data.config.url=url;data.config.key=key;data.config.plan=Number($('monthlyPlan').value)||0;await persistConfig();if(!url||!key){toast('Введите Project URL и anon/publishable key');return}try{setStatus('Подключение…');await connect(url,key)}catch(err){mode='demo';db=null;setStatus('Ошибка подключения','err');setConnectionDetails('Не удалось подключиться',err.message,'err');toast('Не удалось подключиться: '+err.message)}renderAll()};
+  $('testConnection').onclick=async()=>{if(!data.config.url||!data.config.key){toast('Сначала введите параметры Supabase');return}try{await connect(data.config.url,data.config.key)}catch(e){setStatus('Ошибка подключения','err');setConnectionDetails('Ошибка подключения',e.message,'err');toast(e.message)}};
+  $('disconnect').onclick=()=>{db=null;mode='demo';data.tasks=structuredClone(local.tasks);data.deals=structuredClone(local.deals);data.team=structuredClone(local.team);setStatus('Демо-режим');setConnectionDetails('Демо-режим','Изменения не синхронизируются между устройствами.');renderAll();toast('Отключено от Supabase')};
+  // Public shared mode: poll shared tables periodically. Realtime is optional; polling is a fallback.
+  setInterval(async()=>{if(mode!=='supabase'||!db)return;try{const [tasks,deals,team]=await Promise.all([fetchTable('tasks'),fetchTable('deals'),fetchTable('team')]);data.tasks=tasks;data.deals=deals;data.team=team;renderAll()}catch(e){console.warn('Refresh failed',e)}},30000);
+  loadConfig().then(()=>{if(data.config.plan)$('monthlyPlan').value=data.config.plan;renderAll();if(data.config.url&&data.config.key){connect(data.config.url,data.config.key).catch(e=>{setStatus('Демо-режим','err');setConnectionDetails('Автоподключение не удалось',e.message,'err')})}});
+})();
+</script>
+</body>
+</html>
