@@ -275,6 +275,239 @@ main{min-width:0;padding:26px clamp(16px,3vw,38px) 40px}.topbar{display:flex;ali
   // Public shared mode: poll shared tables periodically. Realtime is optional; polling is a fallback.
   setInterval(async()=>{if(mode!=='supabase'||!db)return;try{const [tasks,deals,team]=await Promise.all([fetchTable('tasks'),fetchTable('deals'),fetchTable('team')]);data.tasks=tasks;data.deals=deals;data.team=team;renderAll()}catch(e){console.warn('Refresh failed',e)}},30000);
   loadConfig().then(()=>{if(data.config.plan)$('monthlyPlan').value=data.config.plan;renderAll();if(data.config.url&&data.config.key){connect(data.config.url,data.config.key).catch(e=>{setStatus('Демо-режим','err');setConnectionDetails('Автоподключение не удалось',e.message,'err')})}});
+
+  // ===== ИИ-ПОМОЩНИК РОПа =====
+  const assistantPanel = document.createElement('section');
+  assistantPanel.className = 'card';
+  assistantPanel.id = 'ropAiAssistant';
+  assistantPanel.style.cssText = 'margin-bottom:18px;border:1px solid #d9e2ff;background:linear-gradient(135deg,#fff 0%,#f4f7ff 100%)';
+  assistantPanel.innerHTML = `
+    <div class="card-head">
+      <div>
+        <div class="eyebrow">ИИ · ПЕРСОНАЛЬНЫЙ ПОМОЩНИК</div>
+        <h2 style="font-size:20px;margin:5px 0">РОП-наставник</h2>
+        <p>Анализирует ваши задачи, сделки и команду, помогает выбрать главное.</p>
+      </div>
+      <span style="font-size:27px">✦</span>
+    </div>
+
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">
+      <button type="button" id="aiPlanDay">Составить план дня</button>
+      <button type="button" class="secondary" id="aiAnalyzeDeals">Разобрать сделки</button>
+      <button type="button" class="secondary" id="aiAnalyzeTeam">Оценить команду</button>
+    </div>
+
+    <div id="aiMessages" role="log" aria-live="polite"
+      style="display:grid;gap:10px;max-height:420px;overflow:auto;margin-bottom:14px">
+      <div style="background:#fff;border:1px solid #e4e8f0;border-radius:12px;padding:13px">
+        <strong>Ваш помощник готов</strong>
+        <p style="margin:6px 0 0;color:#69758b">
+          Нажмите «Составить план дня» или задайте вопрос. Я объясню, что требует внимания в первую очередь и почему.
+        </p>
+      </div>
+    </div>
+
+    <form id="aiChatForm" style="display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px">
+      <textarea id="aiQuestion" rows="2" maxlength="3000"
+        placeholder="Например: у меня много задач, с чего начать?"
+        aria-label="Вопрос ИИ-помощнику"
+        style="resize:vertical"></textarea>
+      <button id="aiSend" type="submit" style="align-self:stretch">Спросить</button>
+    </form>
+    <div class="footnote">
+      Помощник анализирует данные, внесённые в этот планер. Он не видит Bitrix24 напрямую и не выполняет действия за вас.
+    </div>
+  `;
+
+  const dashboard = $('view-dashboard');
+  if (dashboard && !$('ropAiAssistant')) {
+    dashboard.insertBefore(assistantPanel, dashboard.firstChild);
+  }
+
+  const aiMessages = $('aiMessages');
+  const aiSend = $('aiSend');
+
+  function aiAddMessage(text, role = 'assistant') {
+    const item = document.createElement('div');
+    item.style.cssText = role === 'user'
+      ? 'justify-self:end;max-width:92%;background:#eaf0ff;border-radius:12px;padding:12px;white-space:pre-wrap;overflow-wrap:anywhere'
+      : 'background:#fff;border:1px solid #e4e8f0;border-radius:12px;padding:13px;white-space:pre-wrap;overflow-wrap:anywhere';
+
+    const label = document.createElement('strong');
+    label.textContent = role === 'user' ? 'Вы' : 'РОП-наставник';
+
+    const body = document.createElement('div');
+    body.style.marginTop = '6px';
+    body.textContent = text;
+
+    item.append(label, body);
+    aiMessages.appendChild(item);
+    aiMessages.scrollTop = aiMessages.scrollHeight;
+    return { item, body };
+  }
+
+  function aiBuildContext() {
+    // Передаём только рабочие поля, необходимые для анализа.
+    // Не добавляем ФИО, телефоны, адреса и документы.
+    return {
+      today: today(),
+      tasks: data.tasks.map(t => ({
+        title: t.title,
+        area: t.area,
+        priority: t.priority,
+        due: t.due,
+        minutes: t.minutes,
+        status: t.status,
+        owner: t.owner,
+        result: t.result,
+        reason: t.reason
+      })),
+      deals: data.deals.map(d => ({
+        code: d.code,
+        seller: d.seller,
+        stage: d.stage,
+        amount: d.amount,
+        status: d.status,
+        risk: d.risk,
+        last_contact: d.last_contact,
+        next_step: d.next_step,
+        next_date: d.next_date,
+        notes: d.notes
+      })),
+      team: data.team.map(p => ({
+        code: p.code,
+        plan: p.plan,
+        fact: p.fact,
+        conversion: p.conversion,
+        focus: p.focus,
+        action: p.action,
+        status: p.status
+      })),
+      metrics: {
+        openTasks: data.tasks.filter(t => t.status !== 'done').length,
+        overdueTasks: data.tasks.filter(t =>
+          t.status !== 'done' && t.due && t.due < today()
+        ).length,
+        activeDeals: data.deals.filter(d => d.status === 'active').length,
+        riskDeals: data.deals.filter(d =>
+          d.status === 'active' && d.risk
+        ).length,
+        dealsWithoutNextStep: data.deals.filter(d =>
+          d.status === 'active' && (!d.next_step || !d.next_date)
+        ).length
+      }
+    };
+  }
+
+  async function askRopAssistant(message) {
+    const question = String(message || '').trim();
+    if (!question) return;
+
+    if (typeof data === 'undefined') {
+      toast('Не удалось прочитать данные планера');
+      return;
+    }
+
+    aiAddMessage(question, 'user');
+    const pending = aiAddMessage('Анализирую данные планера…');
+
+    aiSend.disabled = true;
+    $('aiPlanDay').disabled = true;
+    $('aiAnalyzeDeals').disabled = true;
+    $('aiAnalyzeTeam').disabled = true;
+
+    try {
+      const context = aiBuildContext();
+
+      const response = await fetch(
+        'https://ygsptdigujfhfjoymowe.supabase.co/functions/v1/smooth-api',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'apikey': data.config.key,
+            'Authorization': 'Bearer ' + data.config.key
+          },
+          body: JSON.stringify({
+            message: question,
+            context
+          })
+        }
+      );
+
+      const raw = await response.text();
+      let result;
+
+      try {
+        result = JSON.parse(raw);
+      } catch {
+        throw new Error('Сервер вернул ответ в неизвестном формате.');
+      }
+
+      if (!response.ok) {
+        throw new Error(
+          result.error || result.message ||
+          ('Ошибка сервера: ' + response.status)
+        );
+      }
+
+      const answer = result.answer || result.reply || result.content;
+      if (!answer) {
+        throw new Error('Ответ ИИ пустой. Попробуйте ещё раз.');
+      }
+
+      pending.body.textContent = answer;
+    } catch (error) {
+      pending.body.textContent =
+        'Не удалось получить ответ: ' + error.message +
+        '\n\nПроверьте подключение к Supabase и настройки функции ИИ.';
+    } finally {
+      aiSend.disabled = false;
+      $('aiPlanDay').disabled = false;
+      $('aiAnalyzeDeals').disabled = false;
+      $('aiAnalyzeTeam').disabled = false;
+      aiMessages.scrollTop = aiMessages.scrollHeight;
+    }
+  }
+
+  $('aiChatForm').addEventListener('submit', event => {
+    event.preventDefault();
+    const input = $('aiQuestion');
+    const question = input.value.trim();
+    if (!question) return;
+    input.value = '';
+    askRopAssistant(question);
+  });
+
+  $('aiPlanDay').addEventListener('click', () => {
+    askRopAssistant(
+      'Проанализируй мои текущие задачи, сделки и команду. ' +
+      'Составь реалистичный план дня РОПа: что сделать первым, что делегировать, ' +
+      'что перенести и почему. Учти сроки, риски потери продаж, ожидания клиентов, ' +
+      'время на задачи и помощь сотрудникам. Не выдумывай отсутствующие данные. ' +
+      'Предложи последовательность действий с примерной длительностью и объясни последствия откладывания.'
+    );
+  });
+
+  $('aiAnalyzeDeals').addEventListener('click', () => {
+    askRopAssistant(
+      'Проанализируй все активные сделки. Найди риски, просроченные следующие шаги, ' +
+      'сделки без запланированного действия и возможности приблизить продажу. ' +
+      'Сгруппируй их по срочности, укажи код сделки, причину и конкретное следующее действие. ' +
+      'Не придумывай сведения, которых нет в данных.'
+    );
+  });
+
+  $('aiAnalyzeTeam').addEventListener('click', () => {
+    askRopAssistant(
+      'Проанализируй показатели команды по внесённым данным: план, факт, конверсию, ' +
+      'фокус развития и задачи сотрудников. Кому нужна помощь РОПа в первую очередь? ' +
+      'Предложи конкретное действие для каждого сотрудника, которому действительно нужна помощь. ' +
+      'Не делай выводов о причинах низких показателей без подтверждающих данных.'
+    );
+  });
+  // ===== КОНЕЦ ИИ-ПОМОЩНИКА =====
+
 })();
 </script>
 </body>
